@@ -18,7 +18,6 @@
     <div id="container">
         <div id="scene-container"></div>
         <div id="ui-panel">
-            <div id="panel-toggle"></div>
             <h1>Shipping Container Stacker</h1>
             <div class="controls">
                 <h2>Add Container</h2>
@@ -102,6 +101,7 @@
                 </div>
                 
                 <div class="actions">
+                    <button id="toggle-door-btn" style="display: none;">Open Doors</button>
                     <button id="reset-btn">Reset Scene</button>
                     <button id="rotate-btn">Rotate Mode</button>
                 </div>
@@ -115,25 +115,21 @@
         </div>
     </div>
     
-    <!-- Mobile floating controls toggle with improved icon -->
-    <button id="mobile-controls-toggle">🔄</button>
-
-    <!-- Mobile texture control -->
-    <button id="texture-fab">🎨</button>
-
-    <!-- Mobile controls panel with clearer buttons -->
+    <!-- Mobile floating controls toggle -->
+    <button id="mobile-controls-toggle">⚙️</button>
+    
+    <!-- Mobile controls panel -->
     <div id="mobile-controls">
-        <div class="selected-info" id="mobile-selected-info">No container selected</div>
         <div class="placement-controls">
-            <button id="x-minus">⬅️</button>
-            <button id="x-plus">➡️</button>
-            <button id="z-minus">⬆️</button>
-            <button id="z-plus">⬇️</button>
+            <button id="x-minus">X-</button>
+            <button id="x-plus">X+</button>
+            <button id="z-minus">Z-</button>
+            <button id="z-plus">Z+</button>
         </div>
         <div class="placement-controls">
-            <button id="y-minus">⏬</button>
-            <button id="y-plus">⏫</button>
-            <button id="rotate-container">🔄</button>
+            <button id="y-minus">Y-</button>
+            <button id="y-plus">Y+</button>
+            <button id="rotate-container">Rotate</button>
         </div>
     </div>
     
