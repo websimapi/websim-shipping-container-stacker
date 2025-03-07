@@ -347,7 +347,7 @@ class ShippingContainerScene {
             }
             
             const baseDescription = document.getElementById('texture-prompt').value || 'shipping container texture';
-            const refinePrompt = `${baseDescription}, high resolution, detailed, realistic texture, seamless pattern, professional design`;
+            const refinePrompt = `${baseDescription}, high resolution, detailed, realistic texture, seamless tileable pattern for 3D container material, flat lighting, no shadows`;
             
             await this.generateTextureFromPrompt(refinePrompt);
         });
@@ -727,9 +727,11 @@ class ShippingContainerScene {
         try {
             document.getElementById('ai-status').textContent = 'Generating texture...';
             
-            // Generate image using AI
+            // Generate image using AI with modified prompt to ensure we get textures
+            const texturePrompt = `${prompt}, seamless texture pattern for 3D container material, tileable, high detail, suitable for wrapping a shipping container`;
+            
             const result = await websim.imageGen({
-                prompt: prompt,
+                prompt: texturePrompt,
                 width: 512,
                 height: 512,
             });
