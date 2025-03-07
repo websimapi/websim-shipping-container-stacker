@@ -79,6 +79,9 @@ class ShippingContainerScene {
         this.mousePosition = new THREE.Vector2();
         this.raycaster = new THREE.Raycaster();
         this.rotateContainer = false;
+        this.gridSnap = true;
+        this.gridSize = 1;
+        this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         
         // Physics
         this.world = new CANNON.World({
@@ -105,6 +108,9 @@ class ShippingContainerScene {
         this.orbitControls.enableDamping = true;
         this.dragControls = new DragControls(this.draggableObjects, this.camera, this.renderer.domElement);
         
+        // Add touch-friendly position indicators
+        this.setupPositionIndicators();
+        
         // Setup drag controls
         this.dragControls.addEventListener('dragstart', (event) => {
             this.orbitControls.enabled = false;
@@ -130,6 +136,12 @@ class ShippingContainerScene {
                     this.containers[index].body.quaternion.copy(quaternion);
                 }
             } else {
+                // Apply grid snapping if enabled
+                if (this.gridSnap) {
+                    event.object.position.x = Math.round(event.object.position.x / this.gridSize) * this.gridSize;
+                    event.object.position.z = Math.round(event.object.position.z / this.gridSize) * this.gridSize;
+                }
+                
                 // Update physics body position
                 const index = this.containers.findIndex(c => c.mesh === event.object);
                 if (index !== -1) {
@@ -167,6 +179,23 @@ class ShippingContainerScene {
         window.addEventListener('resize', () => this.onWindowResize());
     }
     
+    setupPositionIndicators() {
+        this.positionHelpers = {
+            x: {
+                plus: document.getElementById('x-plus'),
+                minus: document.getElementById('x-minus')
+            },
+            z: {
+                plus: document.getElementById('z-plus'),
+                minus: document.getElementById('z-minus')
+            },
+            y: {
+                plus: document.getElementById('y-plus'),
+                minus: document.getElementById('y-minus')
+            }
+        };
+    }
+    
     setupEventListeners() {
         // Container selection buttons
         document.querySelectorAll('.container-btn').forEach(button => {
@@ -189,6 +218,101 @@ class ShippingContainerScene {
             document.getElementById('rotate-btn').textContent = 
                 this.rotateContainer ? "Move Mode" : "Rotate Mode";
         });
+        
+        // Grid snap toggle
+        document.getElementById('grid-snap').addEventListener('change', (e) => {
+            this.gridSnap = e.target.checked;
+        });
+        
+        // Grid size control
+        document.getElementById('grid-size').addEventListener('input', (e) => {
+            this.gridSize = parseFloat(e.target.value);
+            document.getElementById('grid-size-display').textContent = this.gridSize.toFixed(1) + 'm';
+        });
+        
+        // Movement buttons for mobile
+        if (this.isMobile || true) { // Always show for demonstration
+            // X axis
+            document.getElementById('x-plus').addEventListener('click', () => {
+                this.moveSelectedContainer('x', this.gridSize);
+            });
+            document.getElementById('x-minus').addEventListener('click', () => {
+                this.moveSelectedContainer('x', -this.gridSize);
+            });
+            
+            // Z axis
+            document.getElementById('z-plus').addEventListener('click', () => {
+                this.moveSelectedContainer('z', this.gridSize);
+            });
+            document.getElementById('z-minus').addEventListener('click', () => {
+                this.moveSelectedContainer('z', -this.gridSize);
+            });
+            
+            // Y axis
+            document.getElementById('y-plus').addEventListener('click', () => {
+                this.moveSelectedContainer('y', this.gridSize);
+            });
+            document.getElementById('y-minus').addEventListener('click', () => {
+                this.moveSelectedContainer('y', -this.gridSize);
+            });
+            
+            // Rotate button for mobile
+            document.getElementById('rotate-container').addEventListener('click', () => {
+                this.rotateSelectedContainer(Math.PI/2);
+            });
+        }
+        
+        // Touch events for container selection
+        this.renderer.domElement.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.handleTap(e.touches[0]);
+        });
+    }
+    
+    handleTap(touch) {
+        // Convert touch to screen coordinates
+        this.mousePosition.x = (touch.clientX / this.container.clientWidth) * 2 - 1;
+        this.mousePosition.y = -(touch.clientY / this.container.clientHeight) * 2 + 1;
+        
+        // Raycast to find selected container
+        this.raycaster.setFromCamera(this.mousePosition, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.draggableObjects);
+        
+        if (intersects.length > 0) {
+            this.selectedContainer = intersects[0].object;
+            
+            // Update info panel with selected container details
+            const containerType = this.selectedContainer.userData.type;
+            this.updateContainerInfo(containerType);
+        } else {
+            this.selectedContainer = null;
+        }
+    }
+    
+    moveSelectedContainer(axis, distance) {
+        if (!this.selectedContainer) return;
+        
+        this.selectedContainer.position[axis] += distance;
+        
+        // Apply physics updates
+        const index = this.containers.findIndex(c => c.mesh === this.selectedContainer);
+        if (index !== -1) {
+            this.containers[index].body.position[axis] += distance;
+        }
+    }
+    
+    rotateSelectedContainer(angle) {
+        if (!this.selectedContainer) return;
+        
+        this.selectedContainer.rotation.y += angle;
+        
+        // Update physics body rotation
+        const index = this.containers.findIndex(c => c.mesh === this.selectedContainer);
+        if (index !== -1) {
+            const quaternion = new CANNON.Quaternion();
+            quaternion.setFromEuler(0, this.selectedContainer.rotation.y, 0);
+            this.containers[index].body.quaternion.copy(quaternion);
+        }
     }
     
     addGround() {
@@ -340,4 +464,3 @@ class ShippingContainerScene {
 document.addEventListener('DOMContentLoaded', () => {
     new ShippingContainerScene();
 });
-

@@ -27,6 +27,31 @@
                     <button class="container-btn" data-type="highcube40" data-color="#F39C12">40ft High Cube</button>
                     <button class="container-btn" data-type="highcube45" data-color="#27AE60">45ft High Cube</button>
                 </div>
+                
+                <div class="grid-controls">
+                    <h2>Placement Controls</h2>
+                    <label>
+                        <input type="checkbox" id="grid-snap" checked>
+                        Snap to Grid
+                    </label>
+                    <label>
+                        Grid Size: <span id="grid-size-display">1.0m</span>
+                        <input type="range" id="grid-size" min="0.5" max="5" step="0.5" value="1">
+                    </label>
+                    
+                    <div class="placement-controls">
+                        <button id="x-minus">X-</button>
+                        <button id="x-plus">X+</button>
+                        <button id="z-minus">Z-</button>
+                        <button id="z-plus">Z+</button>
+                    </div>
+                    <div class="placement-controls">
+                        <button id="y-minus">Y-</button>
+                        <button id="y-plus">Y+</button>
+                        <button id="rotate-container">Rotate</button>
+                    </div>
+                </div>
+                
                 <div class="info-panel">
                     <h2>Container Dimensions</h2>
                     <div id="container-info">
@@ -35,12 +60,13 @@
                 </div>
                 <div class="actions">
                     <button id="reset-btn">Reset Scene</button>
-                    <button id="rotate-btn">Rotate Container</button>
+                    <button id="rotate-btn">Rotate Mode</button>
                 </div>
             </div>
             <div class="instructions">
                 <h2>Instructions</h2>
                 <p>Click a container type to place it in the scene. Use mouse to rotate view. Click and drag containers to move them.</p>
+                <p>On mobile, use the control buttons to position containers precisely.</p>
                 <p>All container dimensions are to scale based on ISO standards.</p>
             </div>
         </div>
