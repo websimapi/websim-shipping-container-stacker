@@ -83,6 +83,7 @@ class ShippingContainerScene {
         this.gridSize = 1;
         this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         this.physicsEnabled = false; // Physics disabled by default
+        this.stackMode = false; // New stacking mode toggle
         
         // Physics
         this.world = new CANNON.World({
@@ -143,11 +144,25 @@ class ShippingContainerScene {
                     event.object.position.z = Math.round(event.object.position.z / this.gridSize) * this.gridSize;
                 }
                 
-                // Update physics body position
-                const index = this.containers.findIndex(c => c.mesh === event.object);
-                if (index !== -1) {
-                    const pos = event.object.position;
-                    this.containers[index].body.position.set(pos.x, pos.y, pos.z);
+                // Check for collisions with other containers
+                if (this.checkCollision(event.object)) {
+                    // If collision detected, revert to previous position
+                    event.object.position.copy(event.object.userData.lastValidPosition || event.object.position);
+                } else {
+                    // Store last valid position
+                    event.object.userData.lastValidPosition = event.object.position.clone();
+                    
+                    // Update physics body position
+                    const index = this.containers.findIndex(c => c.mesh === event.object);
+                    if (index !== -1) {
+                        const pos = event.object.position;
+                        this.containers[index].body.position.set(pos.x, pos.y, pos.z);
+                    }
+                }
+                
+                // Auto-stack if stack mode is enabled
+                if (this.stackMode) {
+                    this.tryStackingContainer(event.object);
                 }
                 
                 // Make sure container can't go below ground
@@ -208,6 +223,11 @@ class ShippingContainerScene {
                     CANNON.Body.DYNAMIC : 
                     CANNON.Body.KINEMATIC;
             }
+        });
+        
+        // Stack mode toggle
+        document.getElementById('stack-mode').addEventListener('change', (e) => {
+            this.stackMode = e.target.checked;
         });
         
         // Container selection buttons
@@ -390,6 +410,8 @@ class ShippingContainerScene {
         
         // Add container details to mesh
         mesh.userData.type = type;
+        mesh.userData.dimensions = { length, width, height };
+        mesh.userData.lastValidPosition = mesh.position.clone();
         
         // Cast and receive shadows
         mesh.castShadow = true;
@@ -409,10 +431,74 @@ class ShippingContainerScene {
             type: this.physicsEnabled ? CANNON.Body.DYNAMIC : CANNON.Body.KINEMATIC
         });
         
+        // Ensure collision even when not in physics mode
+        body.collisionResponse = 1;
+        
         this.world.addBody(body);
         
         // Store container with its physics body
         this.containers.push({ mesh, body, type });
+    }
+    
+    // Check for collision between containers
+    checkCollision(container) {
+        // Skip collision detection if it's the only container
+        if (this.containers.length <= 1) return false;
+        
+        const containerBox = new THREE.Box3().setFromObject(container);
+        
+        for (const otherContainer of this.containers) {
+            // Skip self
+            if (otherContainer.mesh === container) continue;
+            
+            const otherBox = new THREE.Box3().setFromObject(otherContainer.mesh);
+            
+            if (containerBox.intersectsBox(otherBox)) {
+                return true; // Collision detected
+            }
+        }
+        
+        return false; // No collision
+    }
+    
+    // Try to stack container on top of another
+    tryStackingContainer(container) {
+        // Create a ray from the bottom center of the container going down
+        const containerPos = container.position.clone();
+        const dimensions = container.userData.dimensions;
+        
+        // Start ray from bottom of container
+        const rayOrigin = new THREE.Vector3(
+            containerPos.x,
+            containerPos.y - dimensions.height / 2 + 0.1, // Slightly above bottom
+            containerPos.z
+        );
+        
+        const rayDirection = new THREE.Vector3(0, -1, 0); // Downward
+        this.raycaster.set(rayOrigin, rayDirection);
+        
+        // Check for intersection with other containers
+        const intersections = this.raycaster.intersectObjects(
+            this.containers.map(c => c.mesh).filter(mesh => mesh !== container)
+        );
+        
+        if (intersections.length > 0 && intersections[0].distance < 0.5) {
+            // Found container below, place on top
+            const targetContainer = intersections[0].object;
+            const targetDimensions = targetContainer.userData.dimensions;
+            
+            // Set Y position to top of target container
+            container.position.y = targetContainer.position.y + (targetDimensions.height / 2) + (dimensions.height / 2);
+            
+            // Update physics body
+            const index = this.containers.findIndex(c => c.mesh === container);
+            if (index !== -1) {
+                this.containers[index].body.position.y = container.position.y;
+            }
+            
+            // Update last valid position
+            container.userData.lastValidPosition = container.position.clone();
+        }
     }
     
     resetScene() {
