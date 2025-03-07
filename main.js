@@ -889,9 +889,6 @@ class ShippingContainerScene {
             const containerType = this.selectedContainer.userData.type;
             this.updateContainerInfo(containerType);
             
-            // Show texture panel
-            document.getElementById('texture-panel').style.display = 'block';
-            
             // Update mobile info
             this.updateMobileSelection();
             
@@ -932,13 +929,7 @@ class ShippingContainerScene {
     }
 
     updateMobileSelection() {
-        const mobileInfo = document.getElementById('mobile-selected-info');
-        if (this.selectedContainer) {
-            const containerType = this.selectedContainer.userData.type;
-            mobileInfo.textContent = `Selected: ${CONTAINER_SPECS[containerType].name}`;
-        } else {
-            mobileInfo.textContent = 'No container selected';
-        }
+       !function(){const mobileInfo=document.getElementById('mobile-selected-info');if(this.selectedContainer){const containerType=this.selectedContainer.userData.type;mobileInfo.textContent=`Selected:${CONTAINER_SPECS[containerType].name}`}else{mobileInfo.textContent='No container selected'}}.call(this)
     }
     
     addCustomContainer(color) {
