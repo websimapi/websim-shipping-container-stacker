@@ -145,6 +145,9 @@ class ShippingContainerScene {
         });
         
         this.dragControls.addEventListener('drag', (event) => {
+            // If the event object or event.object is undefined, exit early
+            if (!event || !event.object) return;
+                
             // If rotate mode is enabled, rotate container instead of moving
             if (this.rotateContainer) {
                 event.object.rotation.y += 0.05;
@@ -891,6 +894,9 @@ class ShippingContainerScene {
     }
     
     handleClick(event) {
+        // Exit early if event is not defined
+        if (!event) return;
+        
         // Convert mouse/touch to screen coordinates
         const rect = this.renderer.domElement.getBoundingClientRect();
         this.mousePosition.x = ((event.clientX - rect.left) / this.container.clientWidth) * 2 - 1;
@@ -1017,18 +1023,23 @@ class ShippingContainerScene {
         if (!this.selectedContainer || !this.selectedFace) return;
         
         // Reset all faces first
-        const body = this.selectedContainer.children.find(child => child.userData.isContainerBody);
-        if (body && body.material) {
-            body.material.forEach(mat => {
+        const body = this.selectedContainer.children.find(child => child.userData && child.userData.isContainerBody);
+        if (!body || !body.material) return;
+        
+        body.material.forEach(mat => {
+            if (mat) {
                 mat.emissive = new THREE.Color(0x111111);
                 mat.emissiveIntensity = 0.3;
-            });
-            
-            // Highlight the selected face
-            if (this.selectedFace.materialIndex >= 0 && this.selectedFace.materialIndex < body.material.length) {
-                body.material[this.selectedFace.materialIndex].emissive = new THREE.Color(0x44ff44);
-                body.material[this.selectedFace.materialIndex].emissiveIntensity = 0.5;
-                body.material[this.selectedFace.materialIndex].needsUpdate = true;
+            }
+        });
+        
+        // Highlight the selected face
+        if (this.selectedFace.materialIndex >= 0 && this.selectedFace.materialIndex < body.material.length) {
+            const faceMaterial = body.material[this.selectedFace.materialIndex];
+            if (faceMaterial) {
+                faceMaterial.emissive = new THREE.Color(0x44ff44);
+                faceMaterial.emissiveIntensity = 0.5;
+                faceMaterial.needsUpdate = true;
             }
         }
     }
