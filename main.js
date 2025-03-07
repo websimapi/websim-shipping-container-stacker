@@ -115,6 +115,9 @@ class ShippingContainerScene {
         // Add touch-friendly position indicators
         this.setupPositionIndicators();
         
+        // Add click/tap container selection handler
+        this.renderer.domElement.addEventListener('click', (e) => this.handleClick(e));
+        
         // Setup drag controls
         this.dragControls.addEventListener('dragstart', (event) => {
             this.orbitControls.enabled = false;
@@ -341,6 +344,12 @@ class ShippingContainerScene {
         this.renderer.domElement.addEventListener('touchstart', (e) => {
             e.preventDefault();
             this.handleTap(e.touches[0]);
+        });
+        
+        // Make mobile controls more accessible
+        document.getElementById('mobile-controls-toggle').addEventListener('click', () => {
+            const controls = document.getElementById('mobile-controls');
+            controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
         });
     }
     
@@ -746,6 +755,71 @@ class ShippingContainerScene {
             document.getElementById('ai-status').textContent = 'Error: ' + error.message;
         }
     }
+    
+    handleClick(event) {
+        // Convert mouse/touch to screen coordinates
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.mousePosition.x = ((event.clientX - rect.left) / this.container.clientWidth) * 2 - 1;
+        this.mousePosition.y = -((event.clientY - rect.top) / this.container.clientHeight) * 2 + 1;
+        
+        // Raycast to find selected container
+        this.raycaster.setFromCamera(this.mousePosition, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.draggableObjects);
+        
+        if (intersects.length > 0) {
+            this.selectedContainer = intersects[0].object;
+            
+            // Highlight the selected container
+            this.highlightSelectedContainer();
+            
+            // Update info panel with selected container details
+            const containerType = this.selectedContainer.userData.type;
+            this.updateContainerInfo(containerType);
+            
+            // Update texture UI to show the currently selected container
+            document.getElementById('texture-panel').style.display = 'block';
+            document.getElementById('selected-container-info').textContent = 
+                `Selected: ${CONTAINER_SPECS[containerType].name}`;
+                
+            // Ensure mobile controls are visible
+            document.getElementById('mobile-controls').style.display = 'block';
+        } else {
+            this.selectedContainer = null;
+            document.getElementById('selected-container-info').textContent = 'No container selected';
+            
+            // Remove highlights from all containers
+            this.containers.forEach(container => {
+                if (container.mesh.userData.originalMaterial) {
+                    container.mesh.material = container.mesh.userData.originalMaterial;
+                }
+            });
+        }
+    }
+    
+    highlightSelectedContainer() {
+        // First, remove highlight from all containers
+        this.containers.forEach(container => {
+            if (container.mesh.userData.originalMaterial) {
+                container.mesh.material = container.mesh.userData.originalMaterial;
+            }
+        });
+        
+        if (this.selectedContainer) {
+            // Store original material if not already stored
+            if (!this.selectedContainer.userData.originalMaterial) {
+                this.selectedContainer.userData.originalMaterial = this.selectedContainer.material.clone();
+            }
+            
+            // Create a new material with emissive properties for highlighting
+            const highlightMaterial = this.selectedContainer.material.clone();
+            highlightMaterial.emissive.set(0x333333);
+            highlightMaterial.emissiveIntensity = 0.5;
+            
+            // Apply the highlighted material
+            this.selectedContainer.material = highlightMaterial;
+        }
+    }
+
 }
 
 // Initialize the application

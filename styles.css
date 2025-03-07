@@ -230,6 +230,49 @@ h2 {
 }
 
 /* Mobile styles */
+#mobile-controls-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    font-size: 24px;
+    z-index: 100;
+    display: none;
+}
+
+#mobile-controls {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    background-color: rgba(255,255,255,0.9);
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 99;
+    display: none;
+}
+
+.selected-container {
+    border: 2px solid #4CAF50;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+/* Improve touch target sizes */
+.placement-controls button {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 16px;
+    margin: 2px;
+}
+
+/* Make UI panel more mobile-friendly */
 @media (max-width: 768px) {
     #container {
         flex-direction: column;
@@ -237,20 +280,27 @@ h2 {
     
     #ui-panel {
         width: 100%;
-        height: 40vh;
+        height: auto;
+        max-height: 40vh;
         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
         position: relative;
         z-index: 10;
+        overflow-y: auto;
     }
     
     #scene-container {
         height: 60vh;
     }
     
+    #mobile-controls-toggle {
+        display: block;
+    }
+    
     .container-selection {
         grid-template-columns: repeat(2, 1fr);
     }
     
+    /* Add pull indicator */
     #ui-panel::before {
         content: '';
         position: absolute;
@@ -276,13 +326,14 @@ h2 {
     }
 }
 
-/* Ensure buttons are large enough for touch on mobile */
+/* Ensure buttons are large enough for touch */
 @media (max-width: 480px) {
     .container-btn, 
     .actions button,
     .placement-controls button {
+        min-height: 44px;
         padding: 12px 8px;
-        font-size: 14px;
+        font-size: 16px;
     }
     
     .container-selection {
