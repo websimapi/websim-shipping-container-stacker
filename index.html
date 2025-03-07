@@ -18,6 +18,7 @@
     <div id="container">
         <div id="scene-container"></div>
         <div id="ui-panel">
+            <div id="panel-toggle"></div>
             <h1>Shipping Container Stacker</h1>
             <div class="controls">
                 <h2>Add Container</h2>
@@ -72,18 +73,11 @@
                 <div id="texture-panel" class="texture-panel">
                     <h2>Container Textures</h2>
                     <div class="selected-info" id="selected-container-info">No container selected</div>
-                    <div id="selected-face-info">No face selected - Click a face to select it</div>
                     
                     <select id="texture-selector">
                         <option value="none">Choose Texture</option>
                         <!-- Textures will be added here dynamically -->
                     </select>
-                    
-                    <div class="face-controls">
-                        <button id="apply-to-face">Apply to Selected Face Only</button>
-                        <button id="apply-to-all">Apply to All Faces</button>
-                        <button id="toggle-doors">Open/Close Doors</button>
-                    </div>
                     
                     <h3>Generate AI Texture</h3>
                     <div class="texture-input">
@@ -121,21 +115,25 @@
         </div>
     </div>
     
-    <!-- Mobile floating controls toggle -->
-    <button id="mobile-controls-toggle">⚙️</button>
-    
-    <!-- Mobile controls panel -->
+    <!-- Mobile floating controls toggle with improved icon -->
+    <button id="mobile-controls-toggle">🔄</button>
+
+    <!-- Mobile texture control -->
+    <button id="texture-fab">🎨</button>
+
+    <!-- Mobile controls panel with clearer buttons -->
     <div id="mobile-controls">
+        <div class="selected-info" id="mobile-selected-info">No container selected</div>
         <div class="placement-controls">
-            <button id="x-minus">X-</button>
-            <button id="x-plus">X+</button>
-            <button id="z-minus">Z-</button>
-            <button id="z-plus">Z+</button>
+            <button id="x-minus">⬅️</button>
+            <button id="x-plus">➡️</button>
+            <button id="z-minus">⬆️</button>
+            <button id="z-plus">⬇️</button>
         </div>
         <div class="placement-controls">
-            <button id="y-minus">Y-</button>
-            <button id="y-plus">Y+</button>
-            <button id="rotate-container">Rotate</button>
+            <button id="y-minus">⏬</button>
+            <button id="y-plus">⏫</button>
+            <button id="rotate-container">🔄</button>
         </div>
     </div>
     
