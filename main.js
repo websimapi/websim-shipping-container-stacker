@@ -86,11 +86,6 @@ class ShippingContainerScene {
         this.stackMode = false; // New stacking mode toggle
         this.textureLibrary = {}; // Store predefined textures
         this.generatedTextures = {}; // Store AI-generated textures
-        this.objects = []; // Store objects that go inside containers
-        this.selectedObject = null; // Currently selected object
-        this.doorOpen = false; // Door state
-        this.doorAngle = 0; // Door opening angle
-        this.currentContainerInterior = null; // Current container interior being modified
         
         // Physics
         this.world = new CANNON.World({
@@ -216,32 +211,19 @@ class ShippingContainerScene {
         // Load predefined textures
         this.loadTextureLibrary();
         
-        // Setup object library
-        this.objectLibrary = {
-            box: { 
-                geometry: new THREE.BoxGeometry(1, 1, 1),
-                material: new THREE.MeshStandardMaterial({ color: 0xa52a2a }),
-                scale: { x: 1, y: 1, z: 1 }
-            },
-            pallet: {
-                geometry: new THREE.BoxGeometry(1.2, 0.15, 0.8),
-                material: new THREE.MeshStandardMaterial({ color: 0x8b4513 }),
-                scale: { x: 1, y: 1, z: 1 }
-            },
-            barrel: {
-                geometry: new THREE.CylinderGeometry(0.3, 0.3, 0.9, 16),
-                material: new THREE.MeshStandardMaterial({ color: 0x0000ff }),
-                scale: { x: 1, y: 1, z: 1 }
-            },
-            crate: {
-                geometry: new THREE.BoxGeometry(0.8, 0.8, 0.8),
-                material: new THREE.MeshStandardMaterial({ color: 0xddbb88 }),
-                scale: { x: 1, y: 1, z: 1 }
-            }
-        };
-        
         // Handle window resize
         window.addEventListener('resize', () => this.onWindowResize());
+        
+        // Always show mobile controls for better UX
+        document.getElementById('mobile-controls-toggle').style.display = 'block';
+        
+        // Setup collapsible panel for mobile
+        const panelToggle = document.getElementById('panel-toggle');
+        const uiPanel = document.getElementById('ui-panel');
+        
+        panelToggle.addEventListener('click', () => {
+            uiPanel.classList.toggle('collapsed');
+        });
     }
     
     setupPositionIndicators() {
@@ -344,55 +326,6 @@ class ShippingContainerScene {
             });
         }
         
-        // Tab navigation
-        document.querySelectorAll('.tab-btn').forEach(tab => {
-            tab.addEventListener('click', () => {
-                const tabId = tab.dataset.tab;
-                
-                // Deactivate all tabs
-                document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-                
-                // Activate selected tab
-                tab.classList.add('active');
-                document.getElementById(`${tabId}-tab`).classList.add('active');
-            });
-        });
-        
-        // Add objects
-        document.querySelectorAll('.object-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                const type = button.dataset.type;
-                this.addObject(type);
-            });
-        });
-        
-        // Door controls
-        document.getElementById('toggle-doors-btn').addEventListener('click', () => {
-            this.toggleContainerDoors();
-        });
-        
-        document.getElementById('door-angle').addEventListener('input', (e) => {
-            this.doorAngle = parseInt(e.target.value);
-            document.getElementById('door-angle-display').textContent = `${this.doorAngle}°`;
-            this.updateContainerDoors();
-        });
-        
-        // Object controls
-        document.getElementById('delete-object-btn').addEventListener('click', () => {
-            this.deleteSelectedObject();
-        });
-        
-        document.getElementById('duplicate-object-btn').addEventListener('click', () => {
-            this.duplicateSelectedObject();
-        });
-        
-        document.getElementById('object-size').addEventListener('input', (e) => {
-            const scale = parseFloat(e.target.value);
-            document.getElementById('object-size-display').textContent = scale.toFixed(1);
-            this.resizeSelectedObject(scale);
-        });
-        
         // Texture selector
         document.getElementById('texture-selector').addEventListener('change', (e) => {
             if (e.target.value !== 'none') {
@@ -440,6 +373,46 @@ class ShippingContainerScene {
         document.getElementById('mobile-controls-toggle').addEventListener('click', () => {
             const controls = document.getElementById('mobile-controls');
             controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
+        });
+        
+        // Improved mobile controls
+        document.getElementById('mobile-controls-toggle').addEventListener('click', () => {
+            const controls = document.getElementById('mobile-controls');
+            if (controls.style.display === 'block') {
+                controls.style.display = 'none';
+            } else {
+                controls.style.display = 'block';
+                // Update the mobile selected info
+                this.updateMobileSelection();
+            }
+        });
+        
+        // Texture floating action button
+        document.getElementById('texture-fab').addEventListener('click', () => {
+            const texturePanel = document.getElementById('texture-panel');
+            texturePanel.classList.toggle('active');
+        });
+        
+        // Additional event listener for collapsen panel with gesture
+        const uiPanel = document.getElementById('ui-panel');
+        let touchStartY = 0;
+        
+        uiPanel.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        });
+        
+        uiPanel.addEventListener('touchmove', (e) => {
+            const touchY = e.touches[0].clientY;
+            const diff = touchY - touchStartY;
+            
+            if (Math.abs(diff) > 30) {
+                if (diff > 0) {
+                    uiPanel.classList.add('collapsed');
+                } else {
+                    uiPanel.classList.remove('collapsed');
+                }
+                touchStartY = touchY;
+            }
         });
     }
     
@@ -547,13 +520,13 @@ class ShippingContainerScene {
         
         const { length, width, height } = specs.exterior;
         
-        // Create container with doors
-        const container = this.createContainerWithDoors(length, width, height, color);
-        this.scene.add(container);
-        const mesh = container; // Assign the container group to mesh
+        // Visual mesh
+        const geometry = new THREE.BoxGeometry(length, height, width);
+        const material = new THREE.MeshStandardMaterial({ color });
+        const mesh = new THREE.Mesh(geometry, material);
         
-        // Store the doors in userData
-        mesh.userData.doors = container.userData.doors;
+        // Position the container above ground
+        mesh.position.y = height / 2;
         
         // Add container details to mesh
         mesh.userData.type = type;
@@ -565,6 +538,7 @@ class ShippingContainerScene {
         mesh.receiveShadow = true;
         
         // Add to scene and draggable objects
+        this.scene.add(mesh);
         this.draggableObjects.push(mesh);
         
         // Create physics body
@@ -584,47 +558,6 @@ class ShippingContainerScene {
         
         // Store container with its physics body
         this.containers.push({ mesh, body, type });
-    }
-    
-    createContainerWithDoors(length, width, height, color) {
-        // Create container group
-        const containerGroup = new THREE.Group();
-        
-        // Create main container body (slightly shorter to account for doors)
-        const bodyGeometry = new THREE.BoxGeometry(length - 0.1, height, width);
-        const bodyMaterial = new THREE.MeshStandardMaterial({ color });
-        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        body.position.z = -0.05; // Shift it slightly forward
-        body.castShadow = true;
-        body.receiveShadow = true;
-        containerGroup.add(body);
-        
-        // Create doors (on the +Z side)
-        const doorWidth = width / 2;
-        const doorHeight = height * 0.95; // Slightly shorter than container
-        const doorThickness = 0.1;
-        const doorGeometry = new THREE.BoxGeometry(doorThickness, doorHeight, doorWidth);
-        const doorMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.9) });
-        
-        // Left door
-        const leftDoor = new THREE.Mesh(doorGeometry, doorMaterial);
-        leftDoor.position.set(-length/2 + doorThickness/2, 0, width/4);
-        leftDoor.castShadow = true;
-        leftDoor.receiveShadow = true;
-        
-        // Right door
-        const rightDoor = new THREE.Mesh(doorGeometry, doorMaterial);
-        rightDoor.position.set(-length/2 + doorThickness/2, 0, -width/4);
-        rightDoor.castShadow = true;
-        rightDoor.receiveShadow = true;
-        
-        containerGroup.add(leftDoor);
-        containerGroup.add(rightDoor);
-        
-        // Store doors in the container's userData
-        containerGroup.userData.doors = { leftDoor, rightDoor };
-        
-        return containerGroup;
     }
     
     // Check for collision between containers
@@ -700,14 +633,6 @@ class ShippingContainerScene {
         
         // Reset container info
         document.getElementById('container-info').innerHTML = '<p>Select a container to see its dimensions</p>';
-        
-        // Also remove all interior objects
-        for (const obj of this.objects) {
-            this.scene.remove(obj);
-        }
-        
-        this.objects = [];
-        this.selectedObject = null;
     }
     
     updateContainerInfo(type) {
@@ -909,53 +834,38 @@ class ShippingContainerScene {
         this.mousePosition.x = ((event.clientX - rect.left) / this.container.clientWidth) * 2 - 1;
         this.mousePosition.y = -((event.clientY - rect.top) / this.container.clientHeight) * 2 + 1;
         
-        // Raycast to find selected object (container or interior object)
+        // Raycast to find selected container
         this.raycaster.setFromCamera(this.mousePosition, this.camera);
-        const intersects = this.raycaster.intersectObjects([
-            ...this.draggableObjects,
-            ...this.objects
-        ]);
+        const intersects = this.raycaster.intersectObjects(this.draggableObjects);
         
         if (intersects.length > 0) {
-            const selected = intersects[0].object;
+            this.selectedContainer = intersects[0].object;
             
-            // Check if it's a container or an interior object
-            if (this.containers.some(c => c.mesh === selected || selected.parent === c.mesh)) {
-                // It's a container
-                this.selectedContainer = selected.parent || selected;
-                this.selectedObject = null;
-                
-                // Highlight the selected container
-                this.highlightSelectedContainer();
-                
-                // Update container info
-                const containerType = this.selectedContainer.userData.type;
-                this.updateContainerInfo(containerType);
-                
-                // Show texture panel
-                document.getElementById('texture-panel').style.display = 'block';
-            } else {
-                // It's an interior object
-                this.selectedObject = selected;
-                
-                // Update object info
-                this.updateSelectedObjectInfo();
+            // Highlight the selected container
+            this.highlightSelectedContainer();
+            
+            // Update container info with selected container details
+            const containerType = this.selectedContainer.userData.type;
+            this.updateContainerInfo(containerType);
+            
+            // Show texture panel
+            document.getElementById('texture-panel').style.display = 'block';
+            
+            // Update mobile info
+            this.updateMobileSelection();
+            
+            // Provide tactile feedback if available
+            if (window.navigator.vibrate) {
+                window.navigator.vibrate(50);
             }
         } else {
-            // Nothing selected
-            this.selectedContainer = null;
-            this.selectedObject = null;
-            
-            // Update UI
-            document.getElementById('selected-container-info').textContent = 'No container selected';
-            document.getElementById('selected-object-info').textContent = 'No object selected';
-            
-            // Remove highlights
+            // Remove highlights from all containers
             this.containers.forEach(container => {
-                if (container.mesh.material) {
-                    container.mesh.material.emissive = new THREE.Color(0x000000);
-                }
+                container.mesh.material.emissive = new THREE.Color(0x000000);
             });
+            
+            this.selectedContainer = null;
+            document.getElementById('selected-container-info').textContent = 'No container selected';
         }
     }
     
@@ -974,126 +884,21 @@ class ShippingContainerScene {
             // Update selection info
             document.getElementById('selected-container-info').textContent = 
                 `Selected: ${CONTAINER_SPECS[this.selectedContainer.userData.type].name}`;
-        }
-    }
-    
-    toggleContainerDoors() {
-        if (!this.selectedContainer) {
-            alert("Please select a container first");
-            return;
-        }
-        
-        this.doorOpen = !this.doorOpen;
-        this.updateContainerDoors();
-    }
-    
-    updateContainerDoors() {
-        if (!this.selectedContainer || !this.selectedContainer.userData.doors) return;
-        
-        const { leftDoor, rightDoor } = this.selectedContainer.userData.doors;
-        const angle = this.doorOpen ? THREE.MathUtils.degToRad(this.doorAngle) : 0;
-        
-        // Reset rotation first
-        leftDoor.rotation.y = 0;
-        rightDoor.rotation.y = 0;
-        
-        // Apply new rotation
-        leftDoor.rotation.y = angle;
-        rightDoor.rotation.y = -angle;
-    }
-    
-    addObject(type) {
-        if (!this.selectedContainer) {
-            alert("Please select a container first");
-            return;
-        }
-        
-        const objTemplate = this.objectLibrary[type];
-        if (!objTemplate) return;
-        
-        // Create object
-        const objGeometry = objTemplate.geometry.clone();
-        const objMaterial = objTemplate.material.clone();
-        const obj = new THREE.Mesh(objGeometry, objMaterial);
-        
-        // Position inside the selected container
-        const containerPos = this.selectedContainer.position.clone();
-        const containerDim = this.selectedContainer.userData.dimensions;
-        
-        // Place near the door
-        obj.position.set(
-            containerPos.x - containerDim.length/2 + 1,
-            containerPos.y - containerDim.height/2 + objGeometry.parameters.height/2 + 0.1,
-            containerPos.z
-        );
-        
-        obj.castShadow = true;
-        obj.receiveShadow = true;
-        
-        // Add object metadata
-        obj.userData.type = type;
-        obj.userData.containerParent = this.selectedContainer;
-        
-        // Add to scene and objects array
-        this.scene.add(obj);
-        this.objects.push(obj);
-        this.draggableObjects.push(obj);
-        
-        // Make this the selected object
-        this.selectedObject = obj;
-        this.updateSelectedObjectInfo();
-    }
-    
-    deleteSelectedObject() {
-        if (!this.selectedObject) return;
-        
-        // Remove from scene
-        this.scene.remove(this.selectedObject);
-        
-        // Remove from arrays
-        this.objects = this.objects.filter(obj => obj !== this.selectedObject);
-        this.draggableObjects = this.draggableObjects.filter(obj => obj !== this.selectedObject);
-        
-        this.selectedObject = null;
-        this.updateSelectedObjectInfo();
-    }
-    
-    duplicateSelectedObject() {
-        if (!this.selectedObject) return;
-        
-        const type = this.selectedObject.userData.type;
-        const originalPos = this.selectedObject.position.clone();
-        
-        // Create duplicate
-        this.addObject(type);
-        
-        // Position it next to the original
-        if (this.selectedObject) {
-            this.selectedObject.position.set(
-                originalPos.x + 0.5,
-                originalPos.y,
-                originalPos.z + 0.5
-            );
-        }
-    }
-    
-    resizeSelectedObject(scale) {
-        if (!this.selectedObject) return;
-        
-        this.selectedObject.scale.set(scale, scale, scale);
-    }
-    
-    updateSelectedObjectInfo() {
-        const infoElem = document.getElementById('selected-object-info');
-        
-        if (this.selectedObject) {
-            const type = this.selectedObject.userData.type;
-            infoElem.textContent = `Selected: ${type.charAt(0).toUpperCase() + type.slice(1)}`;
-        } else {
-            infoElem.textContent = 'No object selected';
+            
+            // Update mobile selection info as well
+            this.updateMobileSelection();
         }
     }
 
+    updateMobileSelection() {
+        const mobileInfo = document.getElementById('mobile-selected-info');
+        if (this.selectedContainer) {
+            const containerType = this.selectedContainer.userData.type;
+            mobileInfo.textContent = `Selected: ${CONTAINER_SPECS[containerType].name}`;
+        } else {
+            mobileInfo.textContent = 'No container selected';
+        }
+    }
 }
 
 // Initialize the application

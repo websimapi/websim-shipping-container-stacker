@@ -18,105 +18,59 @@
     <div id="container">
         <div id="scene-container"></div>
         <div id="ui-panel">
-            <h1>Shipping Container Designer</h1>
-            <div class="tab-navigation">
-                <button class="tab-btn active" data-tab="containers">Containers</button>
-                <button class="tab-btn" data-tab="placement">Placement</button>
-                <button class="tab-btn" data-tab="objects">Objects</button>
-                <button class="tab-btn" data-tab="textures">Textures</button>
-            </div>
-            <div class="tab-content">
-                <div class="tab-pane active" id="containers-tab">
-                    <h2>Add Container</h2>
-                    <div class="container-selection">
-                        <button class="container-btn" data-type="standard20" data-color="#2E86C1">20ft Standard</button>
-                        <button class="container-btn" data-type="standard40" data-color="#E74C3C">40ft Standard</button>
-                        <button class="container-btn" data-type="highcube40" data-color="#F39C12">40ft High Cube</button>
-                        <button class="container-btn" data-type="highcube45" data-color="#27AE60">45ft High Cube</button>
-                    </div>
+            <div id="panel-toggle"></div>
+            <h1>Shipping Container Stacker</h1>
+            <div class="controls">
+                <h2>Add Container</h2>
+                <div class="container-selection">
+                    <button class="container-btn" data-type="standard20" data-color="#2E86C1">20ft Standard</button>
+                    <button class="container-btn" data-type="standard40" data-color="#E74C3C">40ft Standard</button>
+                    <button class="container-btn" data-type="highcube40" data-color="#F39C12">40ft High Cube</button>
+                    <button class="container-btn" data-type="highcube45" data-color="#27AE60">45ft High Cube</button>
+                </div>
+                
+                <div class="grid-controls">
+                    <h2>Placement Controls</h2>
+                    <label>
+                        <input type="checkbox" id="grid-snap" checked>
+                        Snap to Grid
+                    </label>
+                    <label>
+                        Grid Size: <span id="grid-size-display">1.0m</span>
+                        <input type="range" id="grid-size" min="0.5" max="5" step="0.5" value="1">
+                    </label>
                     
-                    <div class="info-panel">
-                        <h2>Container Dimensions</h2>
-                        <div id="container-info">
-                            <p>Select a container to see its dimensions</p>
-                        </div>
-                    </div>
+                    <label class="physics-toggle">
+                        <input type="checkbox" id="physics-toggle">
+                        Enable Physics (Gravity)
+                    </label>
                     
-                    <div class="actions">
-                        <button id="reset-btn">Reset Scene</button>
-                        <button id="rotate-btn">Rotate Mode</button>
+                    <label class="stack-mode">
+                        <input type="checkbox" id="stack-mode" checked>
+                        Enable Auto-Stacking
+                    </label>
+                    
+                    <div class="placement-controls">
+                        <button id="x-minus">X-</button>
+                        <button id="x-plus">X+</button>
+                        <button id="z-minus">Z-</button>
+                        <button id="z-plus">Z+</button>
+                    </div>
+                    <div class="placement-controls">
+                        <button id="y-minus">Y-</button>
+                        <button id="y-plus">Y+</button>
+                        <button id="rotate-container">Rotate</button>
                     </div>
                 </div>
                 
-                <div class="tab-pane" id="placement-tab">
-                    <div class="grid-controls">
-                        <h2>Placement Controls</h2>
-                        <label>
-                            <input type="checkbox" id="grid-snap" checked>
-                            Snap to Grid
-                        </label>
-                        <label>
-                            Grid Size: <span id="grid-size-display">1.0m</span>
-                            <input type="range" id="grid-size" min="0.5" max="5" step="0.5" value="1">
-                        </label>
-                        
-                        <label class="physics-toggle">
-                            <input type="checkbox" id="physics-toggle">
-                            Enable Physics (Gravity)
-                        </label>
-                        
-                        <label class="stack-mode">
-                            <input type="checkbox" id="stack-mode" checked>
-                            Enable Auto-Stacking
-                        </label>
-                        
-                        <div class="placement-controls">
-                            <button id="x-minus">X-</button>
-                            <button id="x-plus">X+</button>
-                            <button id="z-minus">Z-</button>
-                            <button id="z-plus">Z+</button>
-                        </div>
-                        <div class="placement-controls">
-                            <button id="y-minus">Y-</button>
-                            <button id="y-plus">Y+</button>
-                            <button id="rotate-container">Rotate</button>
-                        </div>
+                <div class="info-panel">
+                    <h2>Container Dimensions</h2>
+                    <div id="container-info">
+                        <p>Select a container to see its dimensions</p>
                     </div>
                 </div>
                 
-                <div class="tab-pane" id="objects-tab">
-                    <h2>Objects</h2>
-                    <div class="object-selection">
-                        <button class="object-btn" data-type="box">Box</button>
-                        <button class="object-btn" data-type="pallet">Pallet</button>
-                        <button class="object-btn" data-type="barrel">Barrel</button>
-                        <button class="object-btn" data-type="crate">Crate</button>
-                    </div>
-                    
-                    <div class="door-controls">
-                        <h2>Container Doors</h2>
-                        <button id="toggle-doors-btn">Open/Close Doors</button>
-                        <label class="door-angle">
-                            Door Angle: <span id="door-angle-display">0°</span>
-                            <input type="range" id="door-angle" min="0" max="180" step="10" value="0">
-                        </label>
-                    </div>
-                    
-                    <div class="selected-object-controls">
-                        <h2>Object Controls</h2>
-                        <p id="selected-object-info">No object selected</p>
-                        <div class="object-actions">
-                            <button id="delete-object-btn">Delete Object</button>
-                            <button id="duplicate-object-btn">Duplicate</button>
-                        </div>
-                        <label>
-                            Object Size: <span id="object-size-display">1.0</span>
-                            <input type="range" id="object-size" min="0.1" max="2" step="0.1" value="1">
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="tab-pane" id="textures-tab">
+                <div id="texture-panel" class="texture-panel">
                     <h2>Container Textures</h2>
                     <div class="selected-info" id="selected-container-info">No container selected</div>
                     
@@ -146,32 +100,40 @@
                         <button data-prompt="Military green container texture with stenciled numbers, seamless pattern">Military</button>
                     </div>
                 </div>
+                
+                <div class="actions">
+                    <button id="reset-btn">Reset Scene</button>
+                    <button id="rotate-btn">Rotate Mode</button>
+                </div>
             </div>
-            
             <div class="instructions">
                 <h2>Instructions</h2>
-                <p>Select a container type to place it in the scene. Use tabs to access different tools.</p>
-                <p>On mobile, use the control buttons to position containers and objects precisely.</p>
-                <p>Open container doors and place objects inside to plan your loading.</p>
+                <p>Click a container type to place it in the scene. Use mouse to rotate view. Click and drag containers to move them.</p>
+                <p>On mobile, use the control buttons to position containers precisely.</p>
+                <p>All container dimensions are to scale based on ISO standards.</p>
             </div>
         </div>
     </div>
     
-    <!-- Mobile floating controls toggle -->
-    <button id="mobile-controls-toggle">⚙️</button>
-    
-    <!-- Mobile controls panel -->
+    <!-- Mobile floating controls toggle with improved icon -->
+    <button id="mobile-controls-toggle">🔄</button>
+
+    <!-- Mobile texture control -->
+    <button id="texture-fab">🎨</button>
+
+    <!-- Mobile controls panel with clearer buttons -->
     <div id="mobile-controls">
+        <div class="selected-info" id="mobile-selected-info">No container selected</div>
         <div class="placement-controls">
-            <button id="x-minus">X-</button>
-            <button id="x-plus">X+</button>
-            <button id="z-minus">Z-</button>
-            <button id="z-plus">Z+</button>
+            <button id="x-minus">⬅️</button>
+            <button id="x-plus">➡️</button>
+            <button id="z-minus">⬆️</button>
+            <button id="z-plus">⬇️</button>
         </div>
         <div class="placement-controls">
-            <button id="y-minus">Y-</button>
-            <button id="y-plus">Y+</button>
-            <button id="rotate-container">Rotate</button>
+            <button id="y-minus">⏬</button>
+            <button id="y-plus">⏫</button>
+            <button id="rotate-container">🔄</button>
         </div>
     </div>
     
