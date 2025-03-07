@@ -72,11 +72,18 @@
                 <div id="texture-panel" class="texture-panel">
                     <h2>Container Textures</h2>
                     <div class="selected-info" id="selected-container-info">No container selected</div>
+                    <div id="selected-face-info">No face selected - Click a face to select it</div>
                     
                     <select id="texture-selector">
                         <option value="none">Choose Texture</option>
                         <!-- Textures will be added here dynamically -->
                     </select>
+                    
+                    <div class="face-controls">
+                        <button id="apply-to-face">Apply to Selected Face Only</button>
+                        <button id="apply-to-all">Apply to All Faces</button>
+                        <button id="toggle-doors">Open/Close Doors</button>
+                    </div>
                     
                     <h3>Generate AI Texture</h3>
                     <div class="texture-input">
