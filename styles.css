@@ -129,6 +129,106 @@ h2 {
     margin-top: 5px;
 }
 
+.texture-panel {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+}
+
+.texture-panel h2 {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.texture-input {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.texture-input input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.texture-input button {
+    padding: 8px 12px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.texture-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.texture-suggestions button {
+    padding: 5px 8px;
+    background-color: #eee;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.texture-suggestions button:hover {
+    background-color: #ddd;
+}
+
+#texture-selector {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+#ai-status {
+    font-size: 0.9rem;
+    color: #555;
+    font-style: italic;
+    margin-top: 5px;
+}
+
+.selected-info {
+    font-weight: bold;
+    padding: 5px;
+    margin-bottom: 10px;
+    border-left: 3px solid #4CAF50;
+    background-color: #e8f5e9;
+}
+
+.buttons-row {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.buttons-row button {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.buttons-row button.primary {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.buttons-row button.secondary {
+    background-color: #607D8B;
+    color: white;
+}
+
 /* Mobile styles */
 @media (max-width: 768px) {
     #container {

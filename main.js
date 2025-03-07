@@ -84,6 +84,8 @@ class ShippingContainerScene {
         this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         this.physicsEnabled = false; // Physics disabled by default
         this.stackMode = false; // New stacking mode toggle
+        this.textureLibrary = {}; // Store predefined textures
+        this.generatedTextures = {}; // Store AI-generated textures
         
         // Physics
         this.world = new CANNON.World({
@@ -94,7 +96,7 @@ class ShippingContainerScene {
         this.setupEventListeners();
         this.animate();
     }
-
+    
     init() {
         // Renderer setup
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
@@ -190,6 +192,9 @@ class ShippingContainerScene {
         
         // Add lighting
         this.addLighting();
+        
+        // Load predefined textures
+        this.loadTextureLibrary();
         
         // Handle window resize
         window.addEventListener('resize', () => this.onWindowResize());
@@ -295,6 +300,43 @@ class ShippingContainerScene {
             });
         }
         
+        // Texture selector
+        document.getElementById('texture-selector').addEventListener('change', (e) => {
+            if (e.target.value !== 'none') {
+                this.applyTextureToSelectedContainer(e.target.value);
+            }
+        });
+        
+        // AI texture generation
+        document.getElementById('generate-texture-btn').addEventListener('click', () => {
+            const prompt = document.getElementById('texture-prompt').value;
+            if (prompt) {
+                this.generateTextureFromPrompt(prompt);
+            } else {
+                alert('Please enter a texture description');
+            }
+        });
+        
+        // Texture prompt suggestions
+        document.getElementById('texture-suggestions').addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                document.getElementById('texture-prompt').value = e.target.dataset.prompt;
+            }
+        });
+        
+        // Refine texture with AI
+        document.getElementById('refine-texture-btn').addEventListener('click', async () => {
+            if (!this.selectedContainer) {
+                alert('Please select a container first');
+                return;
+            }
+            
+            const baseDescription = document.getElementById('texture-prompt').value || 'shipping container texture';
+            const refinePrompt = `${baseDescription}, high resolution, detailed, realistic texture, seamless pattern, professional design`;
+            
+            await this.generateTextureFromPrompt(refinePrompt);
+        });
+        
         // Touch events for container selection
         this.renderer.domElement.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -317,8 +359,14 @@ class ShippingContainerScene {
             // Update info panel with selected container details
             const containerType = this.selectedContainer.userData.type;
             this.updateContainerInfo(containerType);
+            
+            // Update texture UI to show the currently selected container
+            document.getElementById('texture-panel').style.display = 'block';
+            document.getElementById('selected-container-info').textContent = 
+                `Selected: ${CONTAINER_SPECS[containerType].name}`;
         } else {
             this.selectedContainer = null;
+            document.getElementById('selected-container-info').textContent = 'No container selected';
         }
     }
     
@@ -559,6 +607,144 @@ class ShippingContainerScene {
         this.updatePhysics();
         this.orbitControls.update();
         this.renderer.render(this.scene, this.camera);
+    }
+    
+    loadTextureLibrary() {
+        const textureLoader = new THREE.TextureLoader();
+        
+        // Predefined texture library
+        const textures = [
+            { id: 'shipping-line-blue', name: 'Shipping Line Blue', url: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/crate.gif' },
+            { id: 'metal-container', name: 'Metal Container', url: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/hardwood2_diffuse.jpg' },
+            { id: 'rusty-container', name: 'Rusty Container', url: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/water.jpg' },
+            { id: 'white-container', name: 'White Refrigerated', url: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/brick_diffuse.jpg' }
+        ];
+        
+        // Load each texture and store in library
+        textures.forEach(tex => {
+            textureLoader.load(tex.url, (texture) => {
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+                texture.repeat.set(3, 2);
+                this.textureLibrary[tex.id] = {
+                    texture: texture,
+                    name: tex.name
+                };
+                
+                // Add to texture selector once loaded
+                this.updateTextureSelector();
+            });
+        });
+    }
+    
+    updateTextureSelector() {
+        const selector = document.getElementById('texture-selector');
+        if (!selector) return;
+        
+        // Clear current options
+        selector.innerHTML = '<option value="none">Choose Texture</option>';
+        
+        // Add predefined textures
+        Object.keys(this.textureLibrary).forEach(id => {
+            const texture = this.textureLibrary[id];
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = texture.name;
+            selector.appendChild(option);
+        });
+        
+        // Add generated textures
+        Object.keys(this.generatedTextures).forEach(id => {
+            const texture = this.generatedTextures[id];
+            const option = document.createElement('option');
+            option.value = 'generated-' + id;
+            option.textContent = 'Generated: ' + texture.name;
+            selector.appendChild(option);
+        });
+    }
+    
+    applyTextureToSelectedContainer(textureId) {
+        if (!this.selectedContainer) {
+            alert('Please select a container first');
+            return;
+        }
+        
+        let texture;
+        
+        if (textureId.startsWith('generated-')) {
+            // Get generated texture
+            const id = textureId.replace('generated-', '');
+            texture = this.generatedTextures[id]?.texture;
+        } else {
+            // Get predefined texture
+            texture = this.textureLibrary[textureId]?.texture;
+        }
+        
+        if (texture) {
+            // Create new material with the selected texture
+            const material = new THREE.MeshStandardMaterial({ 
+                map: texture,
+                roughness: 0.7,
+                metalness: 0.2
+            });
+            
+            // Apply to selected container
+            this.selectedContainer.material = material;
+        }
+    }
+    
+    async generateTextureFromPrompt(prompt) {
+        if (!prompt) return;
+        
+        try {
+            document.getElementById('ai-status').textContent = 'Generating texture...';
+            
+            // Generate image using AI
+            const result = await websim.imageGen({
+                prompt: prompt,
+                width: 512,
+                height: 512,
+            });
+            
+            if (result && result.url) {
+                // Load the generated texture
+                const textureLoader = new THREE.TextureLoader();
+                textureLoader.load(result.url, (texture) => {
+                    // Configure texture settings
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.repeat.set(2, 2);
+                    
+                    // Create a unique ID for this texture
+                    const id = 'tex-' + Date.now();
+                    
+                    // Store the generated texture
+                    this.generatedTextures[id] = {
+                        texture: texture,
+                        name: prompt.substring(0, 15) + '...'
+                    };
+                    
+                    // Apply to selected container
+                    if (this.selectedContainer) {
+                        const material = new THREE.MeshStandardMaterial({ 
+                            map: texture,
+                            roughness: 0.7,
+                            metalness: 0.2
+                        });
+                        this.selectedContainer.material = material;
+                    }
+                    
+                    // Update texture selector
+                    this.updateTextureSelector();
+                    document.getElementById('ai-status').textContent = 'Texture generated!';
+                });
+            } else {
+                document.getElementById('ai-status').textContent = 'Failed to generate texture';
+            }
+        } catch (error) {
+            console.error('Error generating texture:', error);
+            document.getElementById('ai-status').textContent = 'Error: ' + error.message;
+        }
     }
 }
 

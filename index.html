@@ -68,6 +68,38 @@
                         <p>Select a container to see its dimensions</p>
                     </div>
                 </div>
+                
+                <div id="texture-panel" class="texture-panel">
+                    <h2>Container Textures</h2>
+                    <div class="selected-info" id="selected-container-info">No container selected</div>
+                    
+                    <select id="texture-selector">
+                        <option value="none">Choose Texture</option>
+                        <!-- Textures will be added here dynamically -->
+                    </select>
+                    
+                    <h3>Generate AI Texture</h3>
+                    <div class="texture-input">
+                        <input type="text" id="texture-prompt" placeholder="Describe the texture...">
+                        <button id="generate-texture-btn">Generate</button>
+                    </div>
+                    
+                    <div id="ai-status"></div>
+                    
+                    <div class="buttons-row">
+                        <button id="refine-texture-btn" class="secondary">Enhance Texture</button>
+                    </div>
+                    
+                    <h3>Texture Suggestions</h3>
+                    <div id="texture-suggestions" class="texture-suggestions">
+                        <button data-prompt="Rusty metal shipping container with logos">Rusty Metal</button>
+                        <button data-prompt="Blue shipping container with white company markings">Company Branded</button>
+                        <button data-prompt="Weathered container with graffiti and scratches">Weathered</button>
+                        <button data-prompt="Refrigerated white container with vents">Refrigerated</button>
+                        <button data-prompt="Military green container with stenciled numbers">Military</button>
+                    </div>
+                </div>
+                
                 <div class="actions">
                     <button id="reset-btn">Reset Scene</button>
                     <button id="rotate-btn">Rotate Mode</button>
