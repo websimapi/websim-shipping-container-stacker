@@ -86,7 +86,11 @@ class ShippingContainerScene {
         this.stackMode = false; // New stacking mode toggle
         this.textureLibrary = {}; // Store predefined textures
         this.generatedTextures = {}; // Store AI-generated textures
-        this.doorOpen = false; // Track door state
+        this.objects = []; // Store objects that go inside containers
+        this.selectedObject = null; // Currently selected object
+        this.doorOpen = false; // Door state
+        this.doorAngle = 0; // Door opening angle
+        this.currentContainerInterior = null; // Current container interior being modified
         
         // Physics
         this.world = new CANNON.World({
@@ -184,8 +188,8 @@ class ShippingContainerScene {
                 }
                 
                 // Make sure container can't go below ground
-                if (event.object.position.y < event.object.userData.dimensions.height / 2) {
-                    event.object.position.y = event.object.userData.dimensions.height / 2;
+                if (event.object.position.y < event.object.geometry.parameters.height / 2) {
+                    event.object.position.y = event.object.geometry.parameters.height / 2;
                 }
             }
         });
@@ -211,6 +215,30 @@ class ShippingContainerScene {
         
         // Load predefined textures
         this.loadTextureLibrary();
+        
+        // Setup object library
+        this.objectLibrary = {
+            box: { 
+                geometry: new THREE.BoxGeometry(1, 1, 1),
+                material: new THREE.MeshStandardMaterial({ color: 0xa52a2a }),
+                scale: { x: 1, y: 1, z: 1 }
+            },
+            pallet: {
+                geometry: new THREE.BoxGeometry(1.2, 0.15, 0.8),
+                material: new THREE.MeshStandardMaterial({ color: 0x8b4513 }),
+                scale: { x: 1, y: 1, z: 1 }
+            },
+            barrel: {
+                geometry: new THREE.CylinderGeometry(0.3, 0.3, 0.9, 16),
+                material: new THREE.MeshStandardMaterial({ color: 0x0000ff }),
+                scale: { x: 1, y: 1, z: 1 }
+            },
+            crate: {
+                geometry: new THREE.BoxGeometry(0.8, 0.8, 0.8),
+                material: new THREE.MeshStandardMaterial({ color: 0xddbb88 }),
+                scale: { x: 1, y: 1, z: 1 }
+            }
+        };
         
         // Handle window resize
         window.addEventListener('resize', () => this.onWindowResize());
@@ -316,6 +344,55 @@ class ShippingContainerScene {
             });
         }
         
+        // Tab navigation
+        document.querySelectorAll('.tab-btn').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.dataset.tab;
+                
+                // Deactivate all tabs
+                document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                
+                // Activate selected tab
+                tab.classList.add('active');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+            });
+        });
+        
+        // Add objects
+        document.querySelectorAll('.object-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const type = button.dataset.type;
+                this.addObject(type);
+            });
+        });
+        
+        // Door controls
+        document.getElementById('toggle-doors-btn').addEventListener('click', () => {
+            this.toggleContainerDoors();
+        });
+        
+        document.getElementById('door-angle').addEventListener('input', (e) => {
+            this.doorAngle = parseInt(e.target.value);
+            document.getElementById('door-angle-display').textContent = `${this.doorAngle}°`;
+            this.updateContainerDoors();
+        });
+        
+        // Object controls
+        document.getElementById('delete-object-btn').addEventListener('click', () => {
+            this.deleteSelectedObject();
+        });
+        
+        document.getElementById('duplicate-object-btn').addEventListener('click', () => {
+            this.duplicateSelectedObject();
+        });
+        
+        document.getElementById('object-size').addEventListener('input', (e) => {
+            const scale = parseFloat(e.target.value);
+            document.getElementById('object-size-display').textContent = scale.toFixed(1);
+            this.resizeSelectedObject(scale);
+        });
+        
         // Texture selector
         document.getElementById('texture-selector').addEventListener('change', (e) => {
             if (e.target.value !== 'none') {
@@ -363,15 +440,6 @@ class ShippingContainerScene {
         document.getElementById('mobile-controls-toggle').addEventListener('click', () => {
             const controls = document.getElementById('mobile-controls');
             controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
-        });
-        
-        // Toggle door open/close button
-        document.getElementById('toggle-door-btn').addEventListener('click', () => {
-            if (this.selectedContainer) {
-                this.toggleContainerDoor(this.selectedContainer);
-            } else {
-                alert('Please select a container first');
-            }
         });
     }
     
@@ -479,93 +547,32 @@ class ShippingContainerScene {
         
         const { length, width, height } = specs.exterior;
         
-        // Create container group
-        const containerGroup = new THREE.Group();
+        // Create container with doors
+        const container = this.createContainerWithDoors(length, width, height, color);
+        this.scene.add(container);
+        const mesh = container; // Assign the container group to mesh
         
-        // Create hollow container (main box with thinner walls)
-        const wallThickness = 0.05; // 5cm wall thickness
-        
-        // Create main shell
-        const shellGeometry = new THREE.BoxGeometry(length, height, width);
-        const shellMaterial = new THREE.MeshStandardMaterial({ 
-            color, 
-            side: THREE.DoubleSide // Render both sides
-        });
-        const shell = new THREE.Mesh(shellGeometry, shellMaterial);
-        
-        // Make it hollow by adding a slightly smaller inner cube with reversed normals
-        const innerWidth = width - (wallThickness * 2);
-        const innerHeight = height - (wallThickness * 2);
-        const innerLength = length - (wallThickness * 2);
-        
-        const innerGeometry = new THREE.BoxGeometry(innerLength, innerHeight, innerWidth);
-        const innerMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0xCCCCCC, 
-            side: THREE.BackSide  // Only render inside faces
-        });
-        const innerShell = new THREE.Mesh(innerGeometry, innerMaterial);
-        containerGroup.add(innerShell);
-        
-        // Create doors (at one end of the container)
-        const doorWidth = width / 2;
-        const doorHeight = height - (wallThickness * 2);
-        const doorThickness = wallThickness;
-        
-        const doorGeometry = new THREE.BoxGeometry(doorThickness, doorHeight, doorWidth);
-        const doorMaterial = new THREE.MeshStandardMaterial({ 
-            color: color, 
-            map: shellMaterial.map  // Use same texture as container
-        });
-        
-        // Left door
-        this.leftDoor = new THREE.Mesh(doorGeometry, doorMaterial);
-        this.leftDoor.position.set(-(length/2 - doorThickness/2), 0, -(width/4));
-        
-        // Right door
-        this.rightDoor = new THREE.Mesh(doorGeometry, doorMaterial);
-        this.rightDoor.position.set(-(length/2 - doorThickness/2), 0, width/4);
-        
-        // Add doors to group and set door pivots
-        this.leftDoor.userData.initialPosition = this.leftDoor.position.clone();
-        this.rightDoor.userData.initialPosition = this.rightDoor.position.clone();
-        
-        containerGroup.add(this.leftDoor);
-        containerGroup.add(this.rightDoor);
-        
-        // Position the container above ground
-        containerGroup.position.y = height / 2;
+        // Store the doors in userData
+        mesh.userData.doors = container.userData.doors;
         
         // Add container details to mesh
-        containerGroup.userData.type = type;
-        containerGroup.userData.dimensions = { length, width, height };
-        containerGroup.userData.lastValidPosition = containerGroup.position.clone();
-        containerGroup.userData.doorOpen = false;
-        
-        // Store references to doors
-        containerGroup.userData.leftDoor = this.leftDoor;
-        containerGroup.userData.rightDoor = this.rightDoor;
+        mesh.userData.type = type;
+        mesh.userData.dimensions = { length, width, height };
+        mesh.userData.lastValidPosition = mesh.position.clone();
         
         // Cast and receive shadows
-        shell.castShadow = true;
-        shell.receiveShadow = true;
-        this.leftDoor.castShadow = true;
-        this.leftDoor.receiveShadow = true;
-        this.rightDoor.castShadow = true;
-        this.rightDoor.receiveShadow = true;
-        
-        // Add shell to group
-        containerGroup.add(shell);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
         
         // Add to scene and draggable objects
-        this.scene.add(containerGroup);
-        this.draggableObjects.push(containerGroup);
+        this.draggableObjects.push(mesh);
         
-        // Create physics body for the whole container
+        // Create physics body
         const shape = new CANNON.Box(new CANNON.Vec3(length/2, height/2, width/2));
         const body = new CANNON.Body({
             mass: 1000, // Container mass in kg
             shape,
-            position: new CANNON.Vec3(containerGroup.position.x, containerGroup.position.y, containerGroup.position.z),
+            position: new CANNON.Vec3(mesh.position.x, mesh.position.y, mesh.position.z),
             material: new CANNON.Material({ friction: 0.3 }),
             type: this.physicsEnabled ? CANNON.Body.DYNAMIC : CANNON.Body.KINEMATIC
         });
@@ -576,55 +583,48 @@ class ShippingContainerScene {
         this.world.addBody(body);
         
         // Store container with its physics body
-        this.containers.push({ mesh: containerGroup, body, type });
+        this.containers.push({ mesh, body, type });
     }
     
-    toggleContainerDoor(container) {
-        if (!container.userData.leftDoor || !container.userData.rightDoor) return;
+    createContainerWithDoors(length, width, height, color) {
+        // Create container group
+        const containerGroup = new THREE.Group();
         
-        // Toggle door state
-        container.userData.doorOpen = !container.userData.doorOpen;
+        // Create main container body (slightly shorter to account for doors)
+        const bodyGeometry = new THREE.BoxGeometry(length - 0.1, height, width);
+        const bodyMaterial = new THREE.MeshStandardMaterial({ color });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.position.z = -0.05; // Shift it slightly forward
+        body.castShadow = true;
+        body.receiveShadow = true;
+        containerGroup.add(body);
         
-        const leftDoor = container.userData.leftDoor;
-        const rightDoor = container.userData.rightDoor;
-        const openAngle = Math.PI / 2; // 90 degrees
+        // Create doors (on the +Z side)
+        const doorWidth = width / 2;
+        const doorHeight = height * 0.95; // Slightly shorter than container
+        const doorThickness = 0.1;
+        const doorGeometry = new THREE.BoxGeometry(doorThickness, doorHeight, doorWidth);
+        const doorMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.9) });
         
-        if (container.userData.doorOpen) {
-            // Open doors
-            // Create pivot points at the edges of doors
-            const leftPivot = new THREE.Vector3(
-                leftDoor.position.x,
-                leftDoor.position.y,
-                leftDoor.position.z - leftDoor.geometry.parameters.depth/2
-            );
-            
-            const rightPivot = new THREE.Vector3(
-                rightDoor.position.x,
-                rightDoor.position.y,
-                rightDoor.position.z + rightDoor.geometry.parameters.depth/2
-            );
-            
-            // Move left door around its pivot
-            leftDoor.position.x = leftPivot.x - Math.sin(openAngle) * leftDoor.geometry.parameters.depth/2;
-            leftDoor.position.z = leftPivot.z - Math.cos(openAngle) * leftDoor.geometry.parameters.depth/2;
-            leftDoor.rotation.y = -openAngle;
-            
-            // Move right door around its pivot
-            rightDoor.position.x = rightPivot.x - Math.sin(openAngle) * rightDoor.geometry.parameters.depth/2;
-            rightDoor.position.z = rightPivot.z + Math.cos(openAngle) * rightDoor.geometry.parameters.depth/2;
-            rightDoor.rotation.y = openAngle;
-        } else {
-            // Close doors
-            leftDoor.position.copy(leftDoor.userData.initialPosition);
-            leftDoor.rotation.y = 0;
-            
-            rightDoor.position.copy(rightDoor.userData.initialPosition);
-            rightDoor.rotation.y = 0;
-        }
+        // Left door
+        const leftDoor = new THREE.Mesh(doorGeometry, doorMaterial);
+        leftDoor.position.set(-length/2 + doorThickness/2, 0, width/4);
+        leftDoor.castShadow = true;
+        leftDoor.receiveShadow = true;
         
-        // Update door state button text
-        const doorButtonText = container.userData.doorOpen ? "Close Doors" : "Open Doors";
-        document.getElementById('toggle-door-btn').textContent = doorButtonText;
+        // Right door
+        const rightDoor = new THREE.Mesh(doorGeometry, doorMaterial);
+        rightDoor.position.set(-length/2 + doorThickness/2, 0, -width/4);
+        rightDoor.castShadow = true;
+        rightDoor.receiveShadow = true;
+        
+        containerGroup.add(leftDoor);
+        containerGroup.add(rightDoor);
+        
+        // Store doors in the container's userData
+        containerGroup.userData.doors = { leftDoor, rightDoor };
+        
+        return containerGroup;
     }
     
     // Check for collision between containers
@@ -700,6 +700,14 @@ class ShippingContainerScene {
         
         // Reset container info
         document.getElementById('container-info').innerHTML = '<p>Select a container to see its dimensions</p>';
+        
+        // Also remove all interior objects
+        for (const obj of this.objects) {
+            this.scene.remove(obj);
+        }
+        
+        this.objects = [];
+        this.selectedObject = null;
     }
     
     updateContainerInfo(type) {
@@ -827,26 +835,13 @@ class ShippingContainerScene {
                 metalness: 0.2
             });
             
-            // Apply to the shell and doors
-            this.selectedContainer.children.forEach(child => {
-                if (child.isMesh && child !== this.selectedContainer.userData.leftDoor && 
-                    child !== this.selectedContainer.userData.rightDoor) {
-                    child.material = newMaterial.clone();
-                }
-            });
-            
-            // Apply texture to doors with different repeat settings
-            if (this.selectedContainer.userData.leftDoor && this.selectedContainer.userData.rightDoor) {
-                const doorMaterial = newMaterial.clone();
-                doorMaterial.map = texture.clone();
-                doorMaterial.map.repeat.set(0.5, 1);
-                
-                this.selectedContainer.userData.leftDoor.material = doorMaterial;
-                this.selectedContainer.userData.rightDoor.material = doorMaterial;
-            }
+            // Apply to selected container
+            this.selectedContainer.material = newMaterial;
             
             // Maintain highlight if container is selected
-            this.highlightSelectedContainer();
+            this.selectedContainer.material.emissive = new THREE.Color(0x333333);
+            this.selectedContainer.material.emissiveIntensity = 0.5;
+            this.selectedContainer.material.needsUpdate = true;
             
             console.log(`Applied texture ${textureId} to selected container`);
         }
@@ -892,22 +887,7 @@ class ShippingContainerScene {
                             roughness: 0.7,
                             metalness: 0.2
                         });
-                        this.selectedContainer.children.forEach(child => {
-                            if (child.isMesh && child !== this.selectedContainer.userData.leftDoor && 
-                                child !== this.selectedContainer.userData.rightDoor) {
-                                child.material = material;
-                            }
-                        });
-                        
-                        // Apply texture to doors with different repeat settings
-                        if (this.selectedContainer.userData.leftDoor && this.selectedContainer.userData.rightDoor) {
-                            const doorMaterial = material.clone();
-                            doorMaterial.map = texture.clone();
-                            doorMaterial.map.repeat.set(0.5, 1);
-                            
-                            this.selectedContainer.userData.leftDoor.material = doorMaterial;
-                            this.selectedContainer.userData.rightDoor.material = doorMaterial;
-                        }
+                        this.selectedContainer.material = material;
                     }
                     
                     // Update texture selector
@@ -929,67 +909,188 @@ class ShippingContainerScene {
         this.mousePosition.x = ((event.clientX - rect.left) / this.container.clientWidth) * 2 - 1;
         this.mousePosition.y = -((event.clientY - rect.top) / this.container.clientHeight) * 2 + 1;
         
-        // Raycast to find selected container
+        // Raycast to find selected object (container or interior object)
         this.raycaster.setFromCamera(this.mousePosition, this.camera);
-        const intersects = this.raycaster.intersectObjects(this.draggableObjects);
+        const intersects = this.raycaster.intersectObjects([
+            ...this.draggableObjects,
+            ...this.objects
+        ]);
         
         if (intersects.length > 0) {
-            this.selectedContainer = intersects[0].object;
+            const selected = intersects[0].object;
             
-            // Highlight the selected container
-            this.highlightSelectedContainer();
-            
-            // Update container info with selected container details
-            const containerType = this.selectedContainer.userData.type;
-            this.updateContainerInfo(containerType);
-            
-            // Show texture panel
-            document.getElementById('texture-panel').style.display = 'block';
+            // Check if it's a container or an interior object
+            if (this.containers.some(c => c.mesh === selected || selected.parent === c.mesh)) {
+                // It's a container
+                this.selectedContainer = selected.parent || selected;
+                this.selectedObject = null;
+                
+                // Highlight the selected container
+                this.highlightSelectedContainer();
+                
+                // Update container info
+                const containerType = this.selectedContainer.userData.type;
+                this.updateContainerInfo(containerType);
+                
+                // Show texture panel
+                document.getElementById('texture-panel').style.display = 'block';
+            } else {
+                // It's an interior object
+                this.selectedObject = selected;
+                
+                // Update object info
+                this.updateSelectedObjectInfo();
+            }
         } else {
-            // Remove highlights from all containers
-            this.containers.forEach(container => {
-                container.mesh.children.forEach(child => {
-                    if (child.isMesh) {
-                        child.material.emissive = new THREE.Color(0x000000);
-                    }
-                });
-            });
-            
+            // Nothing selected
             this.selectedContainer = null;
+            this.selectedObject = null;
+            
+            // Update UI
             document.getElementById('selected-container-info').textContent = 'No container selected';
+            document.getElementById('selected-object-info').textContent = 'No object selected';
+            
+            // Remove highlights
+            this.containers.forEach(container => {
+                if (container.mesh.material) {
+                    container.mesh.material.emissive = new THREE.Color(0x000000);
+                }
+            });
         }
     }
     
     highlightSelectedContainer() {
         // First, remove highlight from all containers
         this.containers.forEach(container => {
-            container.mesh.children.forEach(child => {
-                if (child.isMesh) {
-                    child.material.emissive = new THREE.Color(0x000000);
-                }
-            });
+            container.mesh.material.emissive = new THREE.Color(0x000000);
         });
         
         if (this.selectedContainer) {
             // Add emissive highlight to selected container
-            this.selectedContainer.children.forEach(child => {
-                if (child.isMesh) {
-                    child.material.emissive = new THREE.Color(0x333333);
-                    child.material.emissiveIntensity = 0.5;
-                    child.material.needsUpdate = true;
-                }
-            });
+            this.selectedContainer.material.emissive = new THREE.Color(0x333333);
+            this.selectedContainer.material.emissiveIntensity = 0.5;
+            this.selectedContainer.material.needsUpdate = true;
             
             // Update selection info
             document.getElementById('selected-container-info').textContent = 
                 `Selected: ${CONTAINER_SPECS[this.selectedContainer.userData.type].name}`;
-                
-            // Update door button text
-            const doorButtonText = this.selectedContainer.userData.doorOpen ? "Close Doors" : "Open Doors";
-            document.getElementById('toggle-door-btn').textContent = doorButtonText;
-            document.getElementById('toggle-door-btn').style.display = 'block';
+        }
+    }
+    
+    toggleContainerDoors() {
+        if (!this.selectedContainer) {
+            alert("Please select a container first");
+            return;
+        }
+        
+        this.doorOpen = !this.doorOpen;
+        this.updateContainerDoors();
+    }
+    
+    updateContainerDoors() {
+        if (!this.selectedContainer || !this.selectedContainer.userData.doors) return;
+        
+        const { leftDoor, rightDoor } = this.selectedContainer.userData.doors;
+        const angle = this.doorOpen ? THREE.MathUtils.degToRad(this.doorAngle) : 0;
+        
+        // Reset rotation first
+        leftDoor.rotation.y = 0;
+        rightDoor.rotation.y = 0;
+        
+        // Apply new rotation
+        leftDoor.rotation.y = angle;
+        rightDoor.rotation.y = -angle;
+    }
+    
+    addObject(type) {
+        if (!this.selectedContainer) {
+            alert("Please select a container first");
+            return;
+        }
+        
+        const objTemplate = this.objectLibrary[type];
+        if (!objTemplate) return;
+        
+        // Create object
+        const objGeometry = objTemplate.geometry.clone();
+        const objMaterial = objTemplate.material.clone();
+        const obj = new THREE.Mesh(objGeometry, objMaterial);
+        
+        // Position inside the selected container
+        const containerPos = this.selectedContainer.position.clone();
+        const containerDim = this.selectedContainer.userData.dimensions;
+        
+        // Place near the door
+        obj.position.set(
+            containerPos.x - containerDim.length/2 + 1,
+            containerPos.y - containerDim.height/2 + objGeometry.parameters.height/2 + 0.1,
+            containerPos.z
+        );
+        
+        obj.castShadow = true;
+        obj.receiveShadow = true;
+        
+        // Add object metadata
+        obj.userData.type = type;
+        obj.userData.containerParent = this.selectedContainer;
+        
+        // Add to scene and objects array
+        this.scene.add(obj);
+        this.objects.push(obj);
+        this.draggableObjects.push(obj);
+        
+        // Make this the selected object
+        this.selectedObject = obj;
+        this.updateSelectedObjectInfo();
+    }
+    
+    deleteSelectedObject() {
+        if (!this.selectedObject) return;
+        
+        // Remove from scene
+        this.scene.remove(this.selectedObject);
+        
+        // Remove from arrays
+        this.objects = this.objects.filter(obj => obj !== this.selectedObject);
+        this.draggableObjects = this.draggableObjects.filter(obj => obj !== this.selectedObject);
+        
+        this.selectedObject = null;
+        this.updateSelectedObjectInfo();
+    }
+    
+    duplicateSelectedObject() {
+        if (!this.selectedObject) return;
+        
+        const type = this.selectedObject.userData.type;
+        const originalPos = this.selectedObject.position.clone();
+        
+        // Create duplicate
+        this.addObject(type);
+        
+        // Position it next to the original
+        if (this.selectedObject) {
+            this.selectedObject.position.set(
+                originalPos.x + 0.5,
+                originalPos.y,
+                originalPos.z + 0.5
+            );
+        }
+    }
+    
+    resizeSelectedObject(scale) {
+        if (!this.selectedObject) return;
+        
+        this.selectedObject.scale.set(scale, scale, scale);
+    }
+    
+    updateSelectedObjectInfo() {
+        const infoElem = document.getElementById('selected-object-info');
+        
+        if (this.selectedObject) {
+            const type = this.selectedObject.userData.type;
+            infoElem.textContent = `Selected: ${type.charAt(0).toUpperCase() + type.slice(1)}`;
         } else {
-            document.getElementById('toggle-door-btn').style.display = 'none';
+            infoElem.textContent = 'No object selected';
         }
     }
 
