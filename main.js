@@ -86,6 +86,11 @@ class ShippingContainerScene {
         this.stackMode = false; // New stacking mode toggle
         this.textureLibrary = {}; // Store predefined textures
         this.generatedTextures = {}; // Store AI-generated textures
+        this.customContainerSize = {
+            length: 6.0,
+            width: 2.4, 
+            height: 2.6
+        };
         
         // Physics
         this.world = new CANNON.World({
@@ -266,7 +271,13 @@ class ShippingContainerScene {
             button.addEventListener('click', () => {
                 const type = button.dataset.type;
                 const color = button.dataset.color;
-                this.addContainer(type, color);
+                
+                if (type === 'custom') {
+                    // Add custom-sized container
+                    this.addCustomContainer(color);
+                } else {
+                    this.addContainer(type, color);
+                }
                 this.updateContainerInfo(type);
             });
         });
@@ -325,6 +336,31 @@ class ShippingContainerScene {
                 this.rotateSelectedContainer(Math.PI/2);
             });
         }
+        
+        // Size control sliders
+        document.getElementById('size-length').addEventListener('input', (e) => {
+            this.customContainerSize.length = parseFloat(e.target.value);
+            document.getElementById('length-value').textContent = e.target.value + 'm';
+        });
+        
+        document.getElementById('size-width').addEventListener('input', (e) => {
+            this.customContainerSize.width = parseFloat(e.target.value);
+            document.getElementById('width-value').textContent = e.target.value + 'm';
+        });
+        
+        document.getElementById('size-height').addEventListener('input', (e) => {
+            this.customContainerSize.height = parseFloat(e.target.value);
+            document.getElementById('height-value').textContent = e.target.value + 'm';
+        });
+        
+        // Apply size to selected container
+        document.getElementById('apply-size-btn').addEventListener('click', () => {
+            if (this.selectedContainer) {
+                this.resizeSelectedContainer();
+            } else {
+                alert('Please select a container first');
+            }
+        });
         
         // Texture selector
         document.getElementById('texture-selector').addEventListener('change', (e) => {
@@ -636,6 +672,11 @@ class ShippingContainerScene {
     }
     
     updateContainerInfo(type) {
+        if (type === 'custom') {
+            this.updateCustomContainerInfo();
+            return;
+        }
+        
         const specs = CONTAINER_SPECS[type];
         if (!specs) return;
         
@@ -898,6 +939,132 @@ class ShippingContainerScene {
         } else {
             mobileInfo.textContent = 'No container selected';
         }
+    }
+    
+    addCustomContainer(color) {
+        const { length, width, height } = this.customContainerSize;
+        
+        // Visual mesh
+        const geometry = new THREE.BoxGeometry(length, height, width);
+        const material = new THREE.MeshStandardMaterial({ color });
+        const mesh = new THREE.Mesh(geometry, material);
+        
+        // Position the container above ground
+        mesh.position.y = height / 2;
+        
+        // Add container details to mesh
+        mesh.userData.type = 'custom';
+        mesh.userData.dimensions = { length, width, height };
+        mesh.userData.lastValidPosition = mesh.position.clone();
+        
+        // Cast and receive shadows
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        
+        // Add to scene and draggable objects
+        this.scene.add(mesh);
+        this.draggableObjects.push(mesh);
+        
+        // Create physics body
+        const shape = new CANNON.Box(new CANNON.Vec3(length/2, height/2, width/2));
+        const body = new CANNON.Body({
+            mass: 1000,
+            shape,
+            position: new CANNON.Vec3(mesh.position.x, mesh.position.y, mesh.position.z),
+            material: new CANNON.Material({ friction: 0.3 }),
+            type: this.physicsEnabled ? CANNON.Body.DYNAMIC : CANNON.Body.KINEMATIC
+        });
+        
+        body.collisionResponse = 1;
+        this.world.addBody(body);
+        
+        // Store container with its physics body
+        this.containers.push({ mesh, body, type: 'custom' });
+        
+        return mesh;
+    }
+    
+    resizeSelectedContainer() {
+        if (!this.selectedContainer) return;
+        
+        const { length, width, height } = this.customContainerSize;
+        const oldPosition = this.selectedContainer.position.clone();
+        
+        // Remove old container from the scene
+        const index = this.containers.findIndex(c => c.mesh === this.selectedContainer);
+        if (index !== -1) {
+            this.scene.remove(this.selectedContainer);
+            this.world.removeBody(this.containers[index].body);
+            
+            // Remove from draggable objects
+            const dragIndex = this.draggableObjects.indexOf(this.selectedContainer);
+            if (dragIndex !== -1) {
+                this.draggableObjects.splice(dragIndex, 1);
+            }
+            
+            // Create new geometry
+            const geometry = new THREE.BoxGeometry(length, height, width);
+            const material = this.selectedContainer.material.clone();
+            const mesh = new THREE.Mesh(geometry, material);
+            
+            // Copy position and rotation
+            mesh.position.copy(oldPosition);
+            mesh.rotation.copy(this.selectedContainer.rotation);
+            
+            // Adjust Y position based on new height
+            mesh.position.y = Math.max(height / 2, oldPosition.y);
+            
+            // Copy userData
+            mesh.userData = {...this.selectedContainer.userData};
+            mesh.userData.dimensions = { length, width, height };
+            mesh.userData.lastValidPosition = mesh.position.clone();
+            
+            // Cast and receive shadows
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            
+            // Add to scene and draggable objects
+            this.scene.add(mesh);
+            this.draggableObjects.push(mesh);
+            
+            // Create new physics body
+            const shape = new CANNON.Box(new CANNON.Vec3(length/2, height/2, width/2));
+            const body = new CANNON.Body({
+                mass: 1000,
+                shape,
+                position: new CANNON.Vec3(mesh.position.x, mesh.position.y, mesh.position.z),
+                material: new CANNON.Material({ friction: 0.3 }),
+                type: this.physicsEnabled ? CANNON.Body.DYNAMIC : CANNON.Body.KINEMATIC
+            });
+            
+            // Copy rotation if any
+            body.quaternion.copy(mesh.quaternion);
+            body.collisionResponse = 1;
+            this.world.addBody(body);
+            
+            // Replace in containers array
+            this.containers[index] = { mesh, body, type: 'custom' };
+            
+            // Update selected container reference
+            this.selectedContainer = mesh;
+            this.highlightSelectedContainer();
+            
+            // Update container info
+            this.updateCustomContainerInfo();
+        }
+    }
+    
+    updateCustomContainerInfo() {
+        if (!this.selectedContainer) return;
+        
+        const dimensions = this.selectedContainer.userData.dimensions;
+        const infoPanel = document.getElementById('container-info');
+        
+        infoPanel.innerHTML = `
+            <h3>Custom Container</h3>
+            <p><strong>Dimensions:</strong> ${dimensions.length.toFixed(2)}m × ${dimensions.width.toFixed(2)}m × ${dimensions.height.toFixed(2)}m</p>
+            <p><strong>Volume:</strong> ${(dimensions.length * dimensions.width * dimensions.height).toFixed(2)} cubic meters</p>
+        `;
     }
 }
 

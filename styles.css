@@ -235,6 +235,51 @@ h2 {
     color: white;
 }
 
+.size-controls {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+}
+
+.size-slider {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.size-slider label {
+    flex: 1;
+    font-size: 0.9rem;
+    color: #444;
+}
+
+.size-slider input {
+    flex: 2;
+}
+
+.size-slider span {
+    width: 50px;
+    text-align: right;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.apply-size-btn {
+    width: 100%;
+    padding: 8px 0;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.custom-container-btn {
+    background-color: #9C27B0;
+}
+
 /* Mobile styles */
 #mobile-controls-toggle {
     position: fixed;
