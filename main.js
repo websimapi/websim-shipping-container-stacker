@@ -82,6 +82,7 @@ class ShippingContainerScene {
         this.gridSnap = true;
         this.gridSize = 1;
         this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        this.physicsEnabled = false; // Physics disabled by default
         
         // Physics
         this.world = new CANNON.World({
@@ -197,6 +198,18 @@ class ShippingContainerScene {
     }
     
     setupEventListeners() {
+        // Physics toggle
+        document.getElementById('physics-toggle').addEventListener('change', (e) => {
+            this.physicsEnabled = e.target.checked;
+            
+            // Update all containers' physics bodies
+            for (const container of this.containers) {
+                container.body.type = this.physicsEnabled ? 
+                    CANNON.Body.DYNAMIC : 
+                    CANNON.Body.KINEMATIC;
+            }
+        });
+        
         // Container selection buttons
         document.querySelectorAll('.container-btn').forEach(button => {
             button.addEventListener('click', () => {
@@ -392,7 +405,8 @@ class ShippingContainerScene {
             mass: 1000, // Container mass in kg
             shape,
             position: new CANNON.Vec3(mesh.position.x, mesh.position.y, mesh.position.z),
-            material: new CANNON.Material({ friction: 0.3 })
+            material: new CANNON.Material({ friction: 0.3 }),
+            type: this.physicsEnabled ? CANNON.Body.DYNAMIC : CANNON.Body.KINEMATIC
         });
         
         this.world.addBody(body);
@@ -443,10 +457,12 @@ class ShippingContainerScene {
         this.world.fixedStep();
         
         // Update mesh positions/rotations from physics bodies
-        for (const container of this.containers) {
-            if (container.body.type !== CANNON.Body.KINEMATIC) {
-                container.mesh.position.copy(container.body.position);
-                container.mesh.quaternion.copy(container.body.quaternion);
+        if (this.physicsEnabled) {
+            for (const container of this.containers) {
+                if (container.body.type !== CANNON.Body.KINEMATIC) {
+                    container.mesh.position.copy(container.body.position);
+                    container.mesh.quaternion.copy(container.body.quaternion);
+                }
             }
         }
     }
