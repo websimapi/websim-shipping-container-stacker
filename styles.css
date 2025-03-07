@@ -129,16 +129,15 @@ h2 {
     margin-top: 5px;
 }
 
-.texture-panel {
+#texture-panel {
     margin-top: 15px;
     padding: 10px;
     background-color: #f0f0f0;
     border-radius: 4px;
 }
 
-.texture-panel h2 {
-    font-size: 1.1rem;
-    margin-bottom: 8px;
+#texture-panel.active {
+    display: block !important;
 }
 
 .texture-input {
@@ -394,6 +393,22 @@ h2 {
         margin-top: 10px;
         border-radius: 8px;
     }
+    
+    #texture-panel {
+        position: fixed;
+        bottom: 90px;
+        left: 20px;
+        width: 80%;
+        max-width: 320px;
+        background-color: white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        z-index: 101;
+        display: none;
+        border-radius: 12px;
+        padding: 15px;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
 }
 
 /* Additional mobile enhancements */
@@ -448,32 +463,6 @@ h2 {
     font-size: 24px;
     z-index: 100;
     display: none;
-}
-
-#texture-panel.active {
-    display: block;
-}
-
-@media (max-width: 768px) {
-    #texture-fab {
-        display: block;
-    }
-    
-    #texture-panel {
-        position: fixed;
-        bottom: 90px;
-        left: 20px;
-        width: 80%;
-        max-width: 320px;
-        background-color: white;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        z-index: 101;
-        display: none;
-        border-radius: 12px;
-        padding: 15px;
-        max-height: 70vh;
-        overflow-y: auto;
-    }
 }
 
 /* Grid snapping controls */
