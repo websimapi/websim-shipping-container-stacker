@@ -697,6 +697,11 @@ class ShippingContainerScene {
                 metalness: 0.2
             });
             
+            // Store original material if needed
+            if (!this.selectedContainer.userData.originalMaterial) {
+                this.selectedContainer.userData.originalMaterial = this.selectedContainer.material.clone();
+            }
+            
             // Apply to selected container
             this.selectedContainer.material = material;
         }
@@ -771,20 +776,9 @@ class ShippingContainerScene {
             
             // Highlight the selected container
             this.highlightSelectedContainer();
-            
-            // Update info panel with selected container details
-            const containerType = this.selectedContainer.userData.type;
-            this.updateContainerInfo(containerType);
-            
-            // Update texture UI to show the currently selected container
-            document.getElementById('texture-panel').style.display = 'block';
-            document.getElementById('selected-container-info').textContent = 
-                `Selected: ${CONTAINER_SPECS[containerType].name}`;
-                
-            // Ensure mobile controls are visible
-            document.getElementById('mobile-controls').style.display = 'block';
         } else {
             this.selectedContainer = null;
+            // Clear selection and hide texture panel if no container is selected
             document.getElementById('selected-container-info').textContent = 'No container selected';
             
             // Remove highlights from all containers
@@ -817,6 +811,13 @@ class ShippingContainerScene {
             
             // Apply the highlighted material
             this.selectedContainer.material = highlightMaterial;
+            
+            // Update selection info
+            document.getElementById('selected-container-info').textContent = 
+                `Selected: ${CONTAINER_SPECS[this.selectedContainer.userData.type].name}`;
+            document.getElementById('texture-panel').style.display = 'block';
+        } else {
+            document.getElementById('selected-container-info').textContent = 'No container selected';
         }
     }
 
