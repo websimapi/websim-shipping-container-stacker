@@ -199,10 +199,16 @@ h2 {
 
 .selected-info {
     font-weight: bold;
-    padding: 5px;
-    margin-bottom: 10px;
-    border-left: 3px solid #4CAF50;
+    padding: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #4CAF50;
     background-color: #e8f5e9;
+    border-radius: 4px;
+}
+
+.container-selected {
+    outline: 3px solid #4CAF50;
+    outline-offset: 2px;
 }
 
 .buttons-row {

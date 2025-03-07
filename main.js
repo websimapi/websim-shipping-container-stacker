@@ -117,6 +117,18 @@ class ShippingContainerScene {
         
         // Add click/tap container selection handler
         this.renderer.domElement.addEventListener('click', (e) => this.handleClick(e));
+        this.renderer.domElement.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (e.changedTouches.length > 0) {
+                const touch = e.changedTouches[0];
+                // Create a synthetic click event
+                const clickEvent = new MouseEvent('click', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                this.handleClick(clickEvent);
+            }
+        });
         
         // Setup drag controls
         this.dragControls.addEventListener('dragstart', (event) => {
@@ -691,19 +703,21 @@ class ShippingContainerScene {
         
         if (texture) {
             // Create new material with the selected texture
-            const material = new THREE.MeshStandardMaterial({ 
+            const newMaterial = new THREE.MeshStandardMaterial({ 
                 map: texture,
                 roughness: 0.7,
                 metalness: 0.2
             });
             
-            // Store original material if needed
-            if (!this.selectedContainer.userData.originalMaterial) {
-                this.selectedContainer.userData.originalMaterial = this.selectedContainer.material.clone();
-            }
-            
             // Apply to selected container
-            this.selectedContainer.material = material;
+            this.selectedContainer.material = newMaterial;
+            
+            // Maintain highlight if container is selected
+            this.selectedContainer.material.emissive = new THREE.Color(0x333333);
+            this.selectedContainer.material.emissiveIntensity = 0.5;
+            this.selectedContainer.material.needsUpdate = true;
+            
+            console.log(`Applied texture ${textureId} to selected container`);
         }
     }
     
@@ -776,48 +790,39 @@ class ShippingContainerScene {
             
             // Highlight the selected container
             this.highlightSelectedContainer();
-        } else {
-            this.selectedContainer = null;
-            // Clear selection and hide texture panel if no container is selected
-            document.getElementById('selected-container-info').textContent = 'No container selected';
             
+            // Update container info with selected container details
+            const containerType = this.selectedContainer.userData.type;
+            this.updateContainerInfo(containerType);
+            
+            // Show texture panel
+            document.getElementById('texture-panel').style.display = 'block';
+        } else {
             // Remove highlights from all containers
             this.containers.forEach(container => {
-                if (container.mesh.userData.originalMaterial) {
-                    container.mesh.material = container.mesh.userData.originalMaterial;
-                }
+                container.mesh.material.emissive = new THREE.Color(0x000000);
             });
+            
+            this.selectedContainer = null;
+            document.getElementById('selected-container-info').textContent = 'No container selected';
         }
     }
     
     highlightSelectedContainer() {
         // First, remove highlight from all containers
         this.containers.forEach(container => {
-            if (container.mesh.userData.originalMaterial) {
-                container.mesh.material = container.mesh.userData.originalMaterial;
-            }
+            container.mesh.material.emissive = new THREE.Color(0x000000);
         });
         
         if (this.selectedContainer) {
-            // Store original material if not already stored
-            if (!this.selectedContainer.userData.originalMaterial) {
-                this.selectedContainer.userData.originalMaterial = this.selectedContainer.material.clone();
-            }
-            
-            // Create a new material with emissive properties for highlighting
-            const highlightMaterial = this.selectedContainer.material.clone();
-            highlightMaterial.emissive.set(0x333333);
-            highlightMaterial.emissiveIntensity = 0.5;
-            
-            // Apply the highlighted material
-            this.selectedContainer.material = highlightMaterial;
+            // Add emissive highlight to selected container
+            this.selectedContainer.material.emissive = new THREE.Color(0x333333);
+            this.selectedContainer.material.emissiveIntensity = 0.5;
+            this.selectedContainer.material.needsUpdate = true;
             
             // Update selection info
             document.getElementById('selected-container-info').textContent = 
                 `Selected: ${CONTAINER_SPECS[this.selectedContainer.userData.type].name}`;
-            document.getElementById('texture-panel').style.display = 'block';
-        } else {
-            document.getElementById('selected-container-info').textContent = 'No container selected';
         }
     }
 
