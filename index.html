@@ -1,0 +1,51 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipping Container Stacker</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/",
+            "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="container">
+        <div id="scene-container"></div>
+        <div id="ui-panel">
+            <h1>Shipping Container Stacker</h1>
+            <div class="controls">
+                <h2>Add Container</h2>
+                <div class="container-selection">
+                    <button class="container-btn" data-type="standard20" data-color="#2E86C1">20ft Standard</button>
+                    <button class="container-btn" data-type="standard40" data-color="#E74C3C">40ft Standard</button>
+                    <button class="container-btn" data-type="highcube40" data-color="#F39C12">40ft High Cube</button>
+                    <button class="container-btn" data-type="highcube45" data-color="#27AE60">45ft High Cube</button>
+                </div>
+                <div class="info-panel">
+                    <h2>Container Dimensions</h2>
+                    <div id="container-info">
+                        <p>Select a container to see its dimensions</p>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button id="reset-btn">Reset Scene</button>
+                    <button id="rotate-btn">Rotate Container</button>
+                </div>
+            </div>
+            <div class="instructions">
+                <h2>Instructions</h2>
+                <p>Click a container type to place it in the scene. Use mouse to rotate view. Click and drag containers to move them.</p>
+                <p>All container dimensions are to scale based on ISO standards.</p>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="main.js"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
