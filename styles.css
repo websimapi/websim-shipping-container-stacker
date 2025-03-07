@@ -113,12 +113,56 @@ h2 {
     
     #ui-panel {
         width: 100%;
-        height: 300px;
+        height: 40vh;
         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        position: relative;
+        z-index: 10;
+    }
+    
+    #scene-container {
+        height: 60vh;
     }
     
     .container-selection {
         grid-template-columns: repeat(2, 1fr);
+    }
+    
+    #ui-panel::before {
+        content: '';
+        position: absolute;
+        top: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 5px;
+        background-color: #ccc;
+        border-radius: 5px;
+    }
+    
+    h1 { 
+        font-size: 1.2rem; 
+        margin-bottom: 10px; 
+    }
+    h2 { 
+        font-size: 1rem; 
+        margin-bottom: 5px; 
+    }
+    .controls { 
+        margin-bottom: 10px; 
+    }
+}
+
+/* Ensure buttons are large enough for touch on mobile */
+@media (max-width: 480px) {
+    .container-btn, 
+    .actions button,
+    .placement-controls button {
+        padding: 12px 8px;
+        font-size: 14px;
+    }
+    
+    .container-selection {
+        gap: 5px;
     }
 }
 
